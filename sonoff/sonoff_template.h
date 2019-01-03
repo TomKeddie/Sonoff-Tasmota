@@ -1,7 +1,7 @@
 /*
   sonoff_template.h - template settings for Sonoff-Tasmota
 
-  Copyright (C) 2018  Theo Arends
+  Copyright (C) 2019  Theo Arends
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -133,6 +133,19 @@ enum UserSelectablePins {
   GPIO_RFRECV,         // RF receiver
   GPIO_TUYA_TX,        // Tuya Serial interface
   GPIO_TUYA_RX,        // Tuya Serial interface
+  GPIO_MGC3130_XFER,   // MGC3130 Transfer
+  GPIO_MGC3130_RESET,  // MGC3130 Reset
+  GPIO_SSPI_MISO,      // Software SPI Master Input Slave Output
+  GPIO_SSPI_MOSI,      // Software SPI Master Output Slave Input
+  GPIO_SSPI_SCLK,      // Software SPI Serial Clock
+  GPIO_SSPI_CS,        // Software SPI Chip Select
+  GPIO_SSPI_DC,        // Software SPI Data or Command
+  GPIO_RF_SENSOR,      // Rf receiver with sensor decoding
+  GPIO_AZ_TXD,         // AZ-Instrument 7798 Serial interface
+  GPIO_AZ_RXD,         // AZ-Instrument 7798 Serial interface
+  GPIO_MAX31855CS,     // MAX31855 Serial interface
+  GPIO_MAX31855CLK,    // MAX31855 Serial interface
+  GPIO_MAX31855DO,     // MAX31855 Serial interface
   GPIO_SENSOR_END };
 
 // Programmer selectable GPIO functionality offset by user selectable GPIOs
@@ -190,7 +203,12 @@ const char kSensorNames[] PROGMEM =
   D_SENSOR_HX711_SCK "|" D_SENSOR_HX711_DAT "|"
   D_SENSOR_TX20_TX "|"
   D_SENSOR_RFSEND "|" D_SENSOR_RFRECV "|"
-  D_SENSOR_TUYA_TX "|" D_SENSOR_TUYA_RX;
+  D_SENSOR_TUYA_TX "|" D_SENSOR_TUYA_RX "|"
+  D_SENSOR_MGC3130_XFER "|" D_SENSOR_MGC3130_RESET "|"
+  D_SENSOR_SSPI_MISO "|" D_SENSOR_SSPI_MOSI "|" D_SENSOR_SSPI_SCLK "|" D_SENSOR_SSPI_CS "|" D_SENSOR_SSPI_DC "|"
+  D_SENSOR_RF_SENSOR "|"
+  D_SENSOR_AZ_TX "|" D_SENSOR_AZ_RX "|"
+  D_SENSOR_MAX31855_CS "|" D_SENSOR_MAX31855_CLK "|" D_SENSOR_MAX31855_DO;
 
 /********************************************************************************************/
 
@@ -240,7 +258,7 @@ enum SupportedModules {
   ZENGGE_ZF_WF017,
   SONOFF_POW_R2,
   SONOFF_IFAN02,
-  BLITZWOLF_BWSHP2,
+  BLITZWOLF_BWSHP,
   SHELLY1,
   SHELLY2,
   PHILIPS,
@@ -251,11 +269,17 @@ enum SupportedModules {
   APLIC_WDP303075,
   TUYA_DIMMER,
   GOSUND,
+  ARMTRONIX_DIMMERS,
+  SK03_TUYA,
+  PS_16_DZ,
+  TECKIN_US,
+  MANZOKU_EU_4,
   MAXMODULE };
 
 /********************************************************************************************/
 
 #define MAX_GPIO_PIN       18   // Number of supported GPIO
+#define MIN_FLASH_PINS     4    // Number of flash chip pins unusable for configuration (GPIO6, 7, 8 and 11)
 
 const char PINS_WEMOS[] PROGMEM = "D3TXD4RXD2D1flashcFLFLolD6D7D5D8D0A0";
 
@@ -263,9 +287,13 @@ typedef struct MYIO {
   uint8_t      io[MAX_GPIO_PIN];
 } myio;
 
+typedef struct MYCFGIO {
+  uint8_t      io[MAX_GPIO_PIN - MIN_FLASH_PINS];
+} mycfgio;
+
 typedef struct MYTMPLT {
   char         name[15];
-  myio         gp;
+  mycfgio      gp;
 } mytmplt;
 
 const uint8_t kGpioNiceList[] PROGMEM = {
@@ -343,6 +371,11 @@ const uint8_t kGpioNiceList[] PROGMEM = {
 #ifdef USE_SPI
   GPIO_SPI_CS,         // SPI Chip Select
   GPIO_SPI_DC,         // SPI Data Direction
+  GPIO_SSPI_MISO,      // Software SPI Master Input Slave Output
+  GPIO_SSPI_MOSI,      // Software SPI Master Output Slave Input
+  GPIO_SSPI_SCLK,      // Software SPI Serial Clock
+  GPIO_SSPI_CS,        // Software SPI Chip Select
+  GPIO_SSPI_DC,        // Software SPI Data or Command
 #endif
 #ifdef USE_DISPLAY
   GPIO_BACKLIGHT,      // Display backlight control
@@ -363,6 +396,9 @@ const uint8_t kGpioNiceList[] PROGMEM = {
 #ifdef USE_RC_SWITCH
   GPIO_RFSEND,         // RF transmitter
   GPIO_RFRECV,         // RF receiver
+#endif
+#ifdef USE_RF_SENSOR
+  GPIO_RF_SENSOR,      // Rf receiver with sensor decoding
 #endif
 #ifdef USE_SR04
   GPIO_SR04_TRIG,      // SR04 Trigger pin
@@ -424,7 +460,20 @@ const uint8_t kGpioNiceList[] PROGMEM = {
 #endif
 #ifdef USE_TUYA_DIMMER
   GPIO_TUYA_TX,        // Tuya Serial interface
-  GPIO_TUYA_RX         // Tuya Serial interface
+  GPIO_TUYA_RX,        // Tuya Serial interface
+#endif
+#ifdef USE_MGC3130
+  GPIO_MGC3130_XFER,
+  GPIO_MGC3130_RESET,
+#endif
+#ifdef USE_AZ7798
+  GPIO_AZ_TXD,         // AZ-Instrument 7798 CO2 datalogger Serial interface
+  GPIO_AZ_RXD,         // AZ-Instrument 7798 CO2 datalogger Serial interface
+#endif
+#ifdef USE_MAX31855
+  GPIO_MAX31855CS,   // MAX31855 Serial interface
+  GPIO_MAX31855CLK,  // MAX31855 Serial interface
+  GPIO_MAX31855DO,   // MAX31855 Serial interface    
 #endif
 };
 
@@ -464,14 +513,19 @@ const uint8_t kModuleNiceList[MAXMODULE] PROGMEM = {
   WION,
   SHELLY1,
   SHELLY2,
-  BLITZWOLF_BWSHP2,   // Socket Relay Devices with Energy Monitoring
+  BLITZWOLF_BWSHP,    // Socket Relay Devices with Energy Monitoring
   TECKIN,
+  TECKIN_US,
   APLIC_WDP303075,
   GOSUND,
+  SK03_TUYA,
   NEO_COOLCAM,        // Socket Relay Devices
   OBI,
+  MANZOKU_EU_4,
   ESP_SWITCH,         // Switch Devices
-  TUYA_DIMMER,		    // Dimmer Devices
+  TUYA_DIMMER,        // Dimmer Devices
+  ARMTRONIX_DIMMERS,
+  PS_16_DZ,
   H801,               // Light Devices
   MAGICHOME,
   ARILUX_LC01,
@@ -491,16 +545,16 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
   { "Sonoff Basic",    // Sonoff Basic (ESP8266)
      GPIO_KEY1,        // GPIO00 Button
      GPIO_USER,        // GPIO01 Serial RXD and Optional sensor
-     0,                // GPIO02
+     GPIO_USER,        // GPIO02 Only available on newer Sonoff Basic R2 V1
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor
      GPIO_USER,        // GPIO04 Optional sensor
      0,                // GPIO05
-     0,                // GPIO06 (SD_CLK   Flash)
-     0,                // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
-     0,                // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
-     0,                // GPIO09 (SD_DATA2 Flash QIO)
-     0,                // GPIO10 (SD_DATA3 Flash QIO)
-     0,                // GPIO11 (SD_CMD   Flash)
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_REL1,        // GPIO12 Red Led and Relay (0 = Off, 1 = On)
      GPIO_LED1_INV,    // GPIO13 Green Led (0 = On, 1 = Off)
      GPIO_USER,        // GPIO14 Optional sensor
@@ -515,7 +569,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor
      GPIO_USER,        // GPIO04 Optional sensor
      0,
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_REL1,        // GPIO12 Red Led and Relay (0 = Off, 1 = On)
      GPIO_LED1_INV,    // GPIO13 Green Led (0 = On, 1 = Off)
      GPIO_USER,        // GPIO14 Optional sensor
@@ -528,7 +587,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor
      GPIO_USER,        // GPIO04 Optional sensor
      GPIO_USER,        // GPIO05 Optional sensor
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_REL1,        // GPIO12 Red Led and Relay (0 = Off, 1 = On)
      GPIO_LED1_INV,    // GPIO13 Green Led (0 = On, 1 = Off)
      GPIO_USER,        // GPIO14 Optional sensor
@@ -542,7 +606,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor
      GPIO_USER,        // GPIO04 Optional sensor
      0,
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_REL1,        // GPIO12 Red Led and Relay (0 = Off, 1 = On)
      GPIO_LED1_INV,    // GPIO13 Green Led (0 = On, 1 = Off)
      GPIO_USER,        // GPIO14 Optional sensor
@@ -555,7 +624,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_RXD,         // GPIO03 Relay control
      GPIO_USER,        // GPIO04 Optional sensor
      0,
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      0,
      GPIO_LED1_INV,    // GPIO13 Blue Led (0 = On, 1 = Off)
      GPIO_USER,        // GPIO14 Optional sensor
@@ -565,7 +639,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_KEY1,        // GPIO00 Button
      0, 0, 0, 0,
      GPIO_NRG_SEL,     // GPIO05 HLW8012 Sel output (1 = Voltage)
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_REL1,        // GPIO12 Red Led and Relay (0 = Off, 1 = On)
      GPIO_NRG_CF1,     // GPIO13 HLW8012 CF1 voltage / current
      GPIO_HLW_CF,      // GPIO14 HLW8012 CF power
@@ -579,10 +658,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor
      GPIO_REL3,        // GPIO04 Sonoff 4CH Red Led and Relay 3 (0 = Off, 1 = On)
      GPIO_REL2,        // GPIO05 Sonoff 4CH Red Led and Relay 2 (0 = Off, 1 = On)
-     0, 0, 0,          // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
      GPIO_KEY2,        // GPIO09 Button 2
      GPIO_KEY3,        // GPIO10 Button 3
-     0,                // Flash connection
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_REL1,        // GPIO12 Red Led and Relay 1 (0 = Off, 1 = On)
      GPIO_LED1_INV,    // GPIO13 Blue Led (0 = On, 1 = Off)
      GPIO_KEY4,        // GPIO14 Button 4
@@ -595,7 +676,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO02 Optional sensor
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor
      0, 0,
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_REL1,        // GPIO12 Red Led and Relay (0 = Off, 1 = On)
      GPIO_LED1_INV,    // GPIO13 Green/Blue Led (0 = On, 1 = Off)
      0, 0, 0, 0
@@ -606,7 +692,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      0,
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor
      0, 0,
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_REL1,        // GPIO12 Red Led and Relay (0 = Off, 1 = On)
      GPIO_LED1_INV,    // GPIO13 Blue Led (0 = On, 1 = Off)
      0, 0, 0, 0
@@ -617,9 +708,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      0,
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor
      0, 0,
-     0, 0, 0,          // Flash connection
-     0, 0,
-     0,                // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09
+     0,                // GPIO10
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_REL1,        // GPIO12 Red Led and Relay (0 = Off, 1 = On)
      GPIO_LED1_INV,    // GPIO13 Blue Led (0 = On, 1 = Off)
      0, 0, 0, 0
@@ -629,7 +723,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      0, 0, 0,
      GPIO_USER,        // GPIO04 Optional sensor (PWM3 Green)
      GPIO_USER,        // GPIO05 Optional sensor (PWM2 Red)
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_PWM1,        // GPIO12 Cold light (PWM0 Cold)
      GPIO_LED1_INV,    // GPIO13 Blue Led (0 = On, 1 = Off)
      GPIO_PWM2,        // GPIO14 Warm light (PWM1 Warm)
@@ -639,7 +738,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
   { "1 Channel",       // 1 Channel Inching/Latching Relay using (PSA-B01 - ESP8266 and PSF-B01 - ESP8285)
      GPIO_KEY1,        // GPIO00 Button
      0, 0, 0, 0, 0,
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_REL1,        // GPIO12 Red Led and Relay (0 = Off, 1 = On)
      GPIO_LED1_INV,    // GPIO13 Green Led (0 = On, 1 = Off)
      0, 0, 0, 0
@@ -650,7 +754,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      0,
      GPIO_RXD,         // GPIO03 Relay control
      0, 0,
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      0,
      GPIO_LED1_INV,    // GPIO13 Blue Led (0 = On, 1 = Off)
      0, 0, 0, 0
@@ -658,7 +767,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
   { "Motor C/AC",      // Motor Clockwise / Anti clockwise (PSA-B01 - ESP8266)
      GPIO_KEY1,        // GPIO00 Button
      0, 0, 0, 0, 0,
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_REL1,        // GPIO12 Red Led and Relay (0 = Off, 1 = On)
      GPIO_LED1_INV,    // GPIO13 Green Led (0 = On, 1 = Off)
      0, 0, 0, 0
@@ -670,7 +784,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor
      GPIO_USER,        // GPIO04 Optional sensor
      GPIO_USER,        // GPIO05 Optional sensor
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_REL2,        // GPIO12 Red Led and Relay 2 (0 = Off, 1 = On)
      GPIO_REL1,        // GPIO13 Red Led and Relay 1 (0 = Off, 1 = On)
      GPIO_USER,        // GPIO14 Optional sensor
@@ -688,7 +807,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03 UART0_RXD V3.1 Module Pin 3
      GPIO_USER,        // GPIO04 V3.1 Module Pin 10 - V5.0 Module Pin 2
      GPIO_USER,        // GPIO05 V3.1 Module Pin 9 - V5.0 Module Pin 1
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_REL1,        // GPIO12 Relay1 ( 1 = Off)
      GPIO_REL2,        // GPIO13 Relay1 ( 1 = On)
      GPIO_USER,        // GPIO14 V3.1 Module Pin 5 - V5.0 GPIO_REL3_INV Relay2 ( 1 = Off)
@@ -702,7 +826,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      0,
      GPIO_LED1,        // GPIO02 Green Led (1 = On, 0 = Off)
      0, 0, 0,
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_USER,        // GPIO12 Optional sensor (pm data)
      GPIO_KEY1,        // GPIO13 Button
      0,
@@ -716,10 +845,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03 RX Serial TXD and Optional sensor
      GPIO_USER,        // GPIO04 D2 Wemos I2C SDA
      GPIO_USER,        // GPIO05 D1 Wemos I2C SCL / Wemos Relay Shield (0 = Off, 1 = On) / Wemos WS2812B RGB led Shield
-     0, 0, 0,          // Flash connection
-     GPIO_USER,        // Flash connection or GPIO09 on ESP8285 only!
-     GPIO_USER,        // Flash connection or GPIO10 on ESP8285 only!
-     0,                // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     GPIO_USER,        // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     GPIO_USER,        // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_USER,        // GPIO12 D6
      GPIO_USER,        // GPIO13 D7
      GPIO_USER,        // GPIO14 D5
@@ -734,7 +865,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03 RX Serial TXD and Optional sensor
      GPIO_USER,        // GPIO04 Optional sensor
      GPIO_USER,        // GPIO05 Optional sensor
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_USER,        // GPIO12
      GPIO_USER,        // GPIO13 BLUE LED
      GPIO_USER,        // GPIO14 Optional sensor
@@ -749,7 +885,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03 RX and Optional sensor - Pin next to GND on the PCB
      GPIO_PWM5,        // GPIO04 W2 - PWM5
      GPIO_LED2_INV,    // GPIO05 Red LED
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_PWM3,        // GPIO12 Blue
      GPIO_PWM2,        // GPIO13 Green
      GPIO_PWM4,        // GPIO14 W1 - PWM4
@@ -762,16 +903,24 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO02 Optional sensor
      GPIO_RXD,         // GPIO03 TXD to ATMEGA328P
      0, 0,
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      0,
      GPIO_LED1_INV,    // GPIO13 Green Led (0 = On, 1 = Off)
      0, 0, 0, 0
   },
   { "Sonoff BN-SZ",    // Sonoff BN-SZ01 Ceiling led (ESP8285)
      0, 0, 0, 0, 0, 0,
-     0, 0, 0,          // Flash connection
-     0, 0,
-     0,                // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09
+     0,                // GPIO10
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_PWM1,        // GPIO12 Light
      GPIO_LED1_INV,    // GPIO13 Red Led (0 = On, 1 = Off)
      0, 0,
@@ -784,10 +933,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor
      GPIO_REL3,        // GPIO04 Sonoff 4CH Red Led and Relay 3 (0 = Off, 1 = On)
      GPIO_REL2,        // GPIO05 Sonoff 4CH Red Led and Relay 2 (0 = Off, 1 = On)
-     0, 0, 0,          // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
      GPIO_KEY2,        // GPIO09 Button 2
      GPIO_KEY3,        // GPIO10 Button 3
-     0,                // Flash connection
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_REL1,        // GPIO12 Red Led and Relay 1 (0 = Off, 1 = On)
      GPIO_LED1_INV,    // GPIO13 Blue Led (0 = On, 1 = Off)
      GPIO_KEY4,        // GPIO14 Button 4
@@ -795,12 +946,17 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      0, 0
   },
   { "Huafan SS",       // Hua Fan Smart Socket (ESP8266) - like Sonoff Pow
-     GPIO_LED1_INV,    // GPIO0 Blue Led (0 = On, 1 = Off)
+     GPIO_LED1_INV,    // GPIO00 Blue Led (0 = On, 1 = Off)
      0, 0,
-     GPIO_LED2_INV,    // GPIO3 Red Led (0 = On, 1 = Off)
-     GPIO_KEY1,        // GPIO4 Button
-     GPIO_REL1_INV,    // GPIO5 Relay (0 = On, 1 = Off)
-     0, 0, 0, 0, 0, 0, // Flash connection
+     GPIO_LED2_INV,    // GPIO03 Red Led (0 = On, 1 = Off)
+     GPIO_KEY1,        // GPIO04 Button
+     GPIO_REL1_INV,    // GPIO05 Relay (0 = On, 1 = Off)
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_NRG_CF1,     // GPIO12 HLW8012 CF1 voltage / current
      GPIO_NRG_SEL,     // GPIO13 HLW8012 Sel output (1 = Voltage)
      GPIO_HLW_CF,      // GPIO14 HLW8012 CF power
@@ -813,9 +969,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_RXD,         // GPIO03 RF bridge control
      GPIO_USER,        // GPIO04 Optional sensor
      GPIO_USER,        // GPIO05 Optional sensor
-     0, 0, 0,          // Flash connection
-     0, 0,
-     0,                // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09
+     0,                // GPIO10
+                       // GPIO11 (SD_CMD   Flash)
      0,
      GPIO_LED1_INV,    // GPIO13 Blue Led (0 = On, 1 = Off)
      0, 0, 0, 0
@@ -826,9 +985,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO02 Optional sensor SDA pad
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor pad
      0, 0,
-     0, 0, 0,          // Flash connection
-     0, 0,
-     0,                // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09
+     0,                // GPIO10
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_DI,          // GPIO12 my9231 DI
      0,
      GPIO_DCKI,        // GPIO14 my9231 DCKI
@@ -840,9 +1002,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO02 Optional sensor SDA pad
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor pad
      0, 0,
-     0, 0, 0,          // Flash connection
-     0, 0,
-     0,                // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      0,
      GPIO_DI,          // GPIO13 my9291 DI
      0,
@@ -855,9 +1020,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO02 Optional Sensor (J3 Pin 5)
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor
      0, 0,
-     0, 0, 0,          // Flash connection
-     0, 0,
-     0,                // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09
+     0,                // GPIO10
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_REL1,        // GPIO12 Blue Led and Relay 1 (0 = Off, 1 = On)
      GPIO_LED1_INV,    // GPIO13 Blue Led (0 = On, 1 = Off)
      0, 0, 0, 0
@@ -869,10 +1037,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor
      0,
      GPIO_REL2,        // GPIO05 Blue Led and Relay 2 (0 = Off, 1 = On)
-     0, 0, 0,          // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
      GPIO_KEY2,        // GPIO09 Button 2
-     0,
-     0,                // Flash connection
+     0,                // GPIO10
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_REL1,        // GPIO12 Blue Led and Relay 1 (0 = Off, 1 = On)
      GPIO_LED1_INV,    // GPIO13 Blue Led (0 = On, 1 = Off)
      0, 0, 0, 0
@@ -884,10 +1054,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor
      GPIO_REL3,        // GPIO04 Blue Led and Relay 3 (0 = Off, 1 = On)
      GPIO_REL2,        // GPIO05 Blue Led and Relay 2 (0 = Off, 1 = On)
-     0, 0, 0,          // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
      GPIO_KEY2,        // GPIO09 Button 2
      GPIO_KEY3,        // GPIO10 Button 3
-     0,                // Flash connection
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_REL1,        // GPIO12 Blue Led and Relay 1 (0 = Off, 1 = On)
      GPIO_LED1_INV,    // GPIO13 Blue Led (0 = On, 1 = Off)
      0, 0, 0, 0
@@ -900,7 +1072,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor
      GPIO_KEY1,        // GPIO04 Button 1
      GPIO_REL1,        // GPIO05 Relay 1 (0 = Off, 1 = On)
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_USER,        // GPIO12 Optional sensor
      GPIO_REL2,        // GPIO13 Relay 2 (0 = Off, 1 = On)
      GPIO_USER,        // GPIO14 Optional sensor
@@ -916,7 +1093,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor
      GPIO_KEY1,        // GPIO04 D2 push button on ESP-12F board
      GPIO_USER,        // GPIO05 D1 optional sensor
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_PWM2,        // GPIO12 D6 RGB LED Green
      GPIO_PWM3,        // GPIO13 D7 RGB LED Blue
      GPIO_USER,        // GPIO14 D5 optional sensor
@@ -933,7 +1115,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor - Module Pin 3
      GPIO_REL1,        // GPIO04 Red Led and Relay (0 = Off, 1 = On) - Module Pin 10
      GPIO_KEY1,        // GPIO05 Blue Led and OptoCoupler input - Module Pin 9
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      0, 0, 0, 0, 0
   },
   { "MagicHome",       // Magic Home (aka Flux-light) (ESP8266) and Arilux LC10 (ESP8285)
@@ -944,7 +1131,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor
      GPIO_ARIRFRCV,    // GPIO04 IR or RF receiver (optional) (Arilux LC10)
      GPIO_PWM2,        // GPIO05 RGB LED Green
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_PWM3,        // GPIO12 RGB LED Blue
      GPIO_USER,        // GPIO13 RGBW LED White (optional - set to PWM4 for Cold White or Warm White as used on Arilux LC10)
      GPIO_PWM1,        // GPIO14 RGB LED Red
@@ -959,7 +1151,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor
      GPIO_REL1,        // GPIO04 Relay 1 (0 = Off, 1 = On)
      GPIO_REL2,        // GPIO05 Relay 2 (0 = Off, 1 = On)
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_SWT1,        // GPIO12 External input 1 (0 = On, 1 = Off)
      GPIO_SWT2,        // GPIO13 External input 2 (0 = On, 1 = Off)
      GPIO_USER,        // GPIO14 Optional sensor / I2C SCL pad
@@ -973,7 +1170,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      0, 0, 0,
      GPIO_HLW_CF,      // GPIO04 HLW8012 CF power
      GPIO_NRG_CF1,     // GPIO05 HLW8012 CF1 voltage / current
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_NRG_SEL,     // GPIO12 HLW8012 SEL (1 = Voltage)
      GPIO_LED1_INV,    // GPIO13 Green Led
      GPIO_REL1,        // GPIO14 Relay
@@ -988,7 +1190,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor
      GPIO_ARIRFRCV,    // GPIO04 IR or RF receiver (optional)
      GPIO_PWM1,        // GPIO05 RGB LED Red
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_PWM2,        // GPIO12 RGB LED Green
      GPIO_PWM3,        // GPIO13 RGB LED Blue
      GPIO_USER,        // GPIO14 RGBW LED White (optional - set to PWM4 for Cold White or Warm White)
@@ -1003,7 +1210,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor
      GPIO_PWM2,        // GPIO04 RGB LED Green
      GPIO_PWM1,        // GPIO05 RGB LED Red
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_PWM5,        // GPIO12 RGBCW LED Warm
      GPIO_PWM4,        // GPIO13 RGBW LED Cold
      GPIO_PWM3,        // GPIO14 RGB LED Blue
@@ -1017,10 +1229,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor
      0,
      GPIO_REL2,        // GPIO05 Relay 2 (0 = Off, 1 = On)
-     0, 0, 0,          // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
      GPIO_USER,        // GPIO09 Button 1 on header (0 = On, 1 = Off)
      GPIO_KEY1,        // GPIO10 Button on casing
-     0,                // Flash connection
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_REL1,        // GPIO12 Relay 1 (0 = Off, 1 = On)
      GPIO_LED1_INV,    // GPIO13 Blue Led (0 = On, 1 = Off)
      0, 0, 0, 0
@@ -1033,7 +1247,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor
      GPIO_USER,        // GPIO04 W2 - PWM5
      0,
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_PWM2,        // GPIO12 RGB LED Green
      GPIO_PWM3,        // GPIO13 RGB LED Blue
      GPIO_PWM1,        // GPIO14 RGB LED Red
@@ -1046,7 +1265,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      0,
      0,                // GPIO03 Serial TXD
      0, 0,
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_REL1,        // GPIO12 Red Led and Relay (0 = Off, 1 = On)
      GPIO_LED1_INV,    // GPIO13 Green Led (0 = On, 1 = Off)
      0, 0, 0, 0
@@ -1059,7 +1283,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      0,
      GPIO_USER,        // GPIO04 W2 - PWM5
      0,
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_PWM2,        // GPIO12 RGB LED Green
      GPIO_PWM1,        // GPIO13 RGB LED Red
      GPIO_PWM3,        // GPIO14 RGB LED Blue
@@ -1071,7 +1300,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      0,
      0,                // GPIO03 Serial TXD
      0, 0,
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_REL1,        // GPIO12 Red Led and Relay (0 = Off, 1 = On)
      GPIO_LED1_INV,    // GPIO13 Blue Led (0 = On, 1 = Off)
      0, 0, 0, 0
@@ -1083,57 +1317,80 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03 ESP_RXD Serial TXD and Optional sensor
      GPIO_REL3,        // GPIO04 WIFI_O2 Relay 3 (0 = Off, 1 = On) controlling the fan
      GPIO_REL2,        // GPIO05 WIFI_O1 Relay 2 (0 = Off, 1 = On) controlling the fan
-     0, 0, 0,          // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
      GPIO_KEY2,        // GPIO09 WIFI_KEY1 Virtual button 2 as feedback from RC
      GPIO_KEY3,        // GPIO10 WIFI_KEY2 Virtual button 3 as feedback from RC
-     0,                // Flash connection
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_REL1,        // GPIO12 WIFI_O0 Relay 1 (0 = Off, 1 = On) controlling the light
      GPIO_LED1_INV,    // GPIO13 WIFI_CHK Blue Led on PCA (0 = On, 1 = Off)
      GPIO_KEY4,        // GPIO14 WIFI_KEY3 Virtual button 4 as feedback from RC
      GPIO_REL4,        // GPIO15 WIFI_O3 Relay 4 (0 = Off, 1 = On) controlling the fan
      0, 0
   },
-  { "BlitzWolf SHP2",  // BlitzWolf BW-SHP2 (ESP8285 - BL0937 or HJL-01 Energy Monitoring)
+  { "BlitzWolf SHP",   // BlitzWolf BW-SHP2 and BW-SHP6 (ESP8285 - BL0937 or HJL-01 Energy Monitoring)
                        // https://www.banggood.com/BlitzWolf-BW-SHP2-Smart-WIFI-Socket-EU-Plug-220V-16A-Work-with-Amazon-Alexa-Google-Assistant-p-1292899.html
                        // https://www.amazon.de/Steckdose-Homecube-intelligente-Verbrauchsanzeige-funktioniert/dp/B076Q2LKHG/ref=sr_1_fkmr0_1
                        // https://www.amazon.de/Intelligente-Stromverbrauch-Fernsteurung-Schaltbare-Energieklasse/dp/B076WZQS4S/ref=sr_1_1
+                       // https://www.aliexpress.com/store/product/BlitzWolf-BW-SHP6-EU-Plug-Metering-Version-WIFI-Smart-Socket-220V-240V-10A-Work-with-Amazon/1965360_32945504669.html
      GPIO_LED2_INV,    // GPIO00 Red Led (1 = On, 0 = Off)
      GPIO_USER,        // GPIO01 Serial RXD and Optional sensor
      GPIO_LED1_INV,    // GPIO02 Blue Led (1 = On, 0 = Off)
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor
      0,
      GPIO_HJL_CF,      // GPIO05 BL0937 or HJL-01 CF power
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_NRG_SEL_INV, // GPIO12 BL0937 or HJL-01 Sel output (0 = Voltage)
      GPIO_KEY1,        // GPIO13 Button
      GPIO_NRG_CF1,     // GPIO14 BL0937 or HJL-01 CF1 current / voltage
      GPIO_REL1,        // GPIO15 Relay (0 = Off, 1 = On)
      0, 0
   },
-  { "Shelly 1",         // Shelly1 Open Source (ESP8266 - 2MB) - https://shelly.cloud/shelly1-open-source/
+  { "Shelly 1",        // Shelly1 Open Source (ESP8266 - 2MB) - https://shelly.cloud/shelly1-open-source/
      0, 0, 0, 0,
-     GPIO_REL1,         // GPIO04 Relay (0 = Off, 1 = On)
-     GPIO_SWT1_NP,      // GPIO05 SW pin
-     0, 0, 0, 0, 0, 0,  // Flash connection
+     GPIO_REL1,        // GPIO04 Relay (0 = Off, 1 = On)
+     GPIO_SWT1_NP,     // GPIO05 SW pin
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      0, 0, 0, 0, 0, 0
   },
-  { "Shelly 2",         // Shelly2 (ESP8266 - 2MB) - https://shelly.cloud/shelly2/
+  { "Shelly 2",        // Shelly2 (ESP8266 - 2MB) - https://shelly.cloud/shelly2/
      0,
-     GPIO_TXD,          // GPIO01 MCP39F501 Serial input
+     GPIO_TXD,         // GPIO01 MCP39F501 Serial input
      0,
-     GPIO_RXD,          // GPIO03 MCP39F501 Serial output
-     GPIO_REL1,         // GPIO04
-     GPIO_REL2,         // GPIO05
-     0, 0, 0, 0, 0, 0,  // Flash connection
-     GPIO_SWT1,         // GPIO12
+     GPIO_RXD,         // GPIO03 MCP39F501 Serial output
+     GPIO_REL1,        // GPIO04
+     GPIO_REL2,        // GPIO05
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
+     GPIO_SWT1,        // GPIO12
      0,
-     GPIO_SWT2,         // GPIO14
-     0,                 // GPIO15 MCP39F501 Reset
+     GPIO_SWT2,        // GPIO14
+     0,                // GPIO15 MCP39F501 Reset
      0, 0
   },
   { "Xiaomi Philips",  // Xiaomi Philips bulb (ESP8266)
      0, 0, 0, 0, 0, 0,
-     0, 0, 0, 0, 0, 0,
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_PWM2,        // GPIO12 cold/warm light
      0, 0,
      GPIO_PWM1,        // GPIO15 light intensity
@@ -1144,7 +1401,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      0, 0, 0, 0,
      GPIO_LED1_INV,    // GPIO04 Red Led (0 = On, 1 = Off)
      0,
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_REL1,        // GPIO12 Red Led and Relay (0 = Off, 1 = On)
      GPIO_KEY1,        // GPIO13 Button
      0, 0, 0, 0
@@ -1157,7 +1419,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor
      GPIO_KEY1,        // GPIO04 Button 1
      GPIO_REL2_INV,    // GPIO05 Red Led 2 (0 = On, 1 = Off)
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_REL4_INV,    // GPIO12 Blue Led 4 (0 = On, 1 = Off)
      GPIO_KEY4,        // GPIO13 Button 4
      GPIO_KEY3,        // GPIO14 Button 3
@@ -1166,10 +1433,17 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
   },
   { "OBI Socket",      // OBI socket (ESP8266) - https://www.obi.de/hausfunksteuerung/wifi-stecker-schuko/p/2291706
      GPIO_USER,        // GPIO00
-     0,0,0,
+     GPIO_USER,        // GPIO01 Serial RXD
+     0,
+     GPIO_USER,        // GPIO03 Serial TXD
      GPIO_LED1,        // GPIO04 Blue LED
      GPIO_REL1,        // GPIO05 (Relay OFF, but used as Relay Switch)
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_LED2,        // GPIO12 (Relay ON, but set to LOW, so we can switch with GPIO05)
      GPIO_USER,        // GPIO13
      GPIO_KEY1,        // GPIO14 Button
@@ -1184,7 +1458,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_LED2_INV,    // GPIO03 Serial RXD and Red Led (0 = On, 1 = Off)
      GPIO_HJL_CF,      // GPIO04 BL0937 or HJL-01 CF power
      GPIO_NRG_CF1,     // GPIO05 BL0937 or HJL-01 CF1 current / voltage
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_NRG_SEL_INV, // GPIO12 BL0937 or HJL-01 Sel output (0 = Voltage)
      GPIO_LED1_INV,    // GPIO13 Blue Led (0 = On, 1 = Off)
      GPIO_REL1,        // GPIO14 Relay (0 = Off, 1 = On)
@@ -1196,7 +1475,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_KEY1,        // GPIO03 Button
      GPIO_HLW_CF,      // GPIO04 HLW8012 CF power
      GPIO_NRG_CF1,     // GPIO05 HLW8012 CF1 current / voltage
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_NRG_SEL_INV, // GPIO12 HLW8012 CF Sel output (0 = Voltage)
      GPIO_LED1_INV,    // GPIO13 LED (0 = On, 1 = Off)
      GPIO_REL1,        // GPIO14 Relay SRU 5VDC SDA (0 = Off, 1 = On )
@@ -1210,7 +1494,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03 MCU serial control
      GPIO_USER,
      GPIO_USER,
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_USER,
      GPIO_USER,
      GPIO_USER,        // GPIO14 Green Led
@@ -1218,18 +1507,125 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,
      0
   },
-  { "Gosund SP1_v23",  // https://www.amazon.de/gp/product/B0777BWS1P
+  { "Gosund SP1 v23",  // https://www.amazon.de/gp/product/B0777BWS1P
      0,
      GPIO_LED1_INV,    // GPIO01 Serial RXD and LED1 (blue) inv
      0,
      GPIO_KEY1,        // GPIO03 Serial TXD and Button
      GPIO_HJL_CF,      // GPIO04 BL0937 or HJL-01 CF power
      GPIO_NRG_CF1,     // GPIO05 BL0937 or HJL-01 CF1 current / voltage
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_NRG_SEL_INV, // GPIO12 BL0937 or HJL-01 Sel output (0 = Voltage)
      GPIO_LED2_INV,    // GPIO13 LED2 (red) inv
      GPIO_REL1,        // GPIO14 Relay (0 = Off, 1 = On)
      0, 0, 0
+  },
+  { "ARMTR Dimmer",    // ARMTRONIX Dimmer, one or two channel (ESP8266 w/ separate MCU dimmer)
+                       // https://www.tindie.com/products/Armtronix/wifi-ac-dimmer-two-triac-board/
+                       // https://www.tindie.com/products/Armtronix/wifi-ac-dimmer-esp8266-one-triac-board-alexaecho/
+     GPIO_USER,
+     GPIO_TXD,         // GPIO01 MCU serial control
+     GPIO_USER,
+     GPIO_RXD,         // GPIO03 MCU serial control
+     GPIO_USER,
+     GPIO_USER,
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
+     GPIO_USER,
+     GPIO_USER,
+     GPIO_USER,
+     GPIO_USER,
+     GPIO_USER,
+     0
+  },
+  { "SK03 Outdoor",    // Outdoor smart plug with power monitoring HLW8012 chip - https://www.amazon.com/gp/product/B07CG7MBPV
+     GPIO_KEY1,        // GPIO00 Button
+     0, 0, 0,
+     GPIO_HLW_CF,      // GPIO04 HLW8012 CF power
+     GPIO_NRG_CF1,     // GPIO05 HLW8012 CF1 current / voltage
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
+     GPIO_NRG_SEL_INV, // GPIO12 HLW8012 CF Sel output (0 = Voltage)
+     GPIO_LED2_INV,    // GPIO13 Red Led (0 = On, 1 = Off)
+     GPIO_LED1_INV,    // GPIO14 Blue Led (0 = On, 1 = Off)
+     GPIO_REL1,        // GPIO15 Relay (0 = Off, 1 = On)
+     0, 0
+  },
+  { "PS-16-DZ",        // PS-16-DZ Dimmer (ESP8266 w/ separate Nuvoton MCU dimmer)
+                       // https://www.aliexpress.com/item/SM-Smart-WIFI-Wall-Dimmer-Light-Switch-US-Ewelink-APP-Remote-Control-Wi-Fi-Wirele-Work/32871151902.html
+     GPIO_USER,
+     GPIO_TXD,         // GPIO01 MCU serial control
+     GPIO_USER,
+     GPIO_RXD,         // GPIO03 MCU serial control
+     GPIO_USER,
+     GPIO_USER,
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
+     GPIO_USER,
+     GPIO_LED1,        // GPIO13 WiFi LED
+     GPIO_USER,
+     GPIO_USER,
+     GPIO_USER,
+     0
+  },
+  { "Teckin US",       // Teckin SP20 US with Energy Monitoring
+                       // https://www.amazon.com/Outlet-Compatible-Monitoring-Function-Required/dp/B079Q5W22B
+                       // https://www.amazon.com/Outlet-ZOOZEE-Monitoring-Function-Compatible/dp/B07J2LR5KN
+     GPIO_LED2_INV,    // GPIO00 Red Led (1 = On, 0 = Off)
+     0,
+     GPIO_LED1_INV,    // GPIO02 Blue Led (1 = On, 0 = Off)
+     0,
+     GPIO_REL1,        // GPIO04 Relay (0 = Off, 1 = On)
+     GPIO_HJL_CF,      // GPIO05 BL0937 or HJL-01 CF power
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
+     GPIO_NRG_SEL_INV, // GPIO12 BL0937 or HJL-01 Sel output (0 = Voltage)
+     GPIO_KEY1,        // GPIO13 Button
+     GPIO_NRG_CF1,     // GPIO14 BL0937 or HJL-01 CF1 current / voltage
+     0, 0, 0
+  },
+  { "Manzoku strip",   // "MANZOKU" labeled power strip, EU version
+                       // https://www.amazon.de/Steckdosenleiste-AOFO-Mehrfachsteckdose-Überspannungsschutz-Sprachsteuerung/dp/B07GBSD11P/
+                       // https://www.amazon.de/Steckdosenleiste-Geekbes-USB-Anschluss-Kompatibel-gesteuert/dp/B078W23BW9/
+     0,                // GPIO00
+     0,                // GPIO01 Serial RXD
+     0,
+     GPIO_KEY1,        // GPIO03 Serial TXD + Button
+     GPIO_REL2,        // GPIO04 Relay 2
+     GPIO_REL1,        // GPIO05 Relay 1
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
+     GPIO_REL3,        // GPIO12 Relay 3
+     GPIO_REL4,        // GPIO13 Relay 4
+     GPIO_USER,        // GPIO14
+     0,
+     GPIO_USER,        // GPIO16
+     0
   }
 };
 
@@ -1244,7 +1640,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor
      GPIO_USER,        // GPIO04 IR receiver (optional)
      GPIO_PWM2,        // GPIO05 RGB LED Green
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_PWM3,        // GPIO12 RGB LED Blue
      GPIO_USER,        // GPIO13 RGBW LED White (optional - set to PWM4 for Cold White or Warm White)
      GPIO_PWM1,        // GPIO14 RGB LED Red
@@ -1260,7 +1661,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03 Serial TXD and Optional sensor0
      GPIO_ARIRFRCV,    // GPIO04 RF receiver input
      GPIO_PWM2,        // GPIO05 RGB LED Green
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_PWM3,        // GPIO12 RGB LED Blue
      GPIO_PWM4,        // GPIO13 RGBW LED White
      GPIO_PWM1,        // GPIO14 RGB LED Red
@@ -1273,7 +1679,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_KEY2,        // GPIO03 Serial TXD and Optional sensor
      GPIO_REL2,        // GPIO04 Relay 2
      GPIO_KEY3,        // GPIO05 Input 2
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_KEY1,        // GPIO12 Key input
      GPIO_REL1,        // GPIO13 Relay 1
      0,
@@ -1285,7 +1696,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      0, 0, 0, 0,
      GPIO_REL1,        // GPIO04 Relay (0 = Off, 1 = On)
      0,
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_KEY1,        // GPIO12 Button
      0, 0,
      GPIO_LED1,        // GPIO15 Led (1 = On, 0 = Off)
@@ -1296,7 +1712,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      0, 0, 0, 0,
      GPIO_LED1_INV,    // GPIO04 Blue Led (0 = On, 1 = Off)
      0,                // GPIO05 IR or RF receiver (optional)
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_REL1,        // GPIO12 Relay and Red Led (0 = Off, 1 = On)
      GPIO_KEY1,        // GPIO13 Button
      0, 0, 0, 0
@@ -1309,7 +1730,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03
      GPIO_LED1_INV,    // GPIO04 Blue LED
      GPIO_REL1,        // GPIO05 Red LED and relay
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      0,
      GPIO_KEY1,        // GPIO13 Button (normally GPIO00)
      GPIO_USER,        // GPIO14
@@ -1322,7 +1748,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      0,
      GPIO_USER,        // GPIO04 IR receiver (optional)
      GPIO_PWM2,        // GPIO05 RGB LED Green
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_PWM1,        // GPIO12 RGB LED Red
      GPIO_PWM3,        // GPIO13 RGB LED Blue
      0,
@@ -1337,7 +1768,12 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO03 (D8) Serial TXD
      GPIO_USER,        // GPIO04 (D4) 4 x WS2812 Leds, (DOUT) Extents WS2812 string
      GPIO_USER,        // GPIO05 (D5) Blue Led
-     0, 0, 0, 0, 0, 0, // Flash connection
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
      GPIO_USER,        // GPIO12 (D12)
      GPIO_USER,        // GPIO13 (D13)
      GPIO_USER,        // GPIO14 (D14)
@@ -1345,6 +1781,21 @@ const mytmplt kModules[MAXMODULE] PROGMEM = {
      GPIO_USER,        // GPIO16 (D16)
      0                 // ADC0 Analog input (A0)
   }
+
+  { "Delock 11826",    // Delock 11826 (ESP8285) = Sonoff Basic
+     GPIO_KEY1,        // GPIO00 Button
+     0, 0, 0, 0, 0,
+                       // GPIO06 (SD_CLK   Flash)
+                       // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                       // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+     0,                // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+     0,                // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                       // GPIO11 (SD_CMD   Flash)
+     GPIO_REL1,        // GPIO12 Red Led and Relay (0 = Off, 1 = On)
+     GPIO_LED1_INV,    // GPIO13 Green Led (0 = On, 1 = Off)
+     0, 0, 0, 0
+  }
+
 */
 
 #endif  // _SONOFF_TEMPLATE_H_
